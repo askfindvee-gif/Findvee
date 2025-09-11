@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSupabaseAuth } from "../../hooks/useSupabaseAuth";
+import { useAuth } from "../../auth/AuthProvider";
+import { getBrowserLocation, reverseGeocode } from "../../services/location";
 import PasswordInput from "../../components/base/PasswordInput";
 
 function Img({ src, alt, className }: { src: string; alt: string; className?: string }) {
@@ -432,8 +433,9 @@ export default function TeslaLikeLanding() {
   const [expandedRadius, setExpandedRadius] = useState(RADIUS);
   const [nearestCityInfo, setNearestCityInfo] = useState<{city: string, distance: number} | null>(null);
   
-  const { user, loading, signUp, signIn, signInWithGoogle, signOut, trackAnalytics } = useSupabaseAuth();
+  const { user, loading, signInEmailPassword, signUpEmailPassword, signOut } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const trackAnalytics = async (..._args: any[]) => {};
   const t = translations[lang];
 
   const RESULTS_PER_PAGE = 10;
@@ -485,46 +487,33 @@ export default function TeslaLikeLanding() {
 
   // Auto-detect user location with improved error handling
   const detectUserLocation = async () => {
-    if (!navigator.geolocation) {
-      console.log('Geolocation not supported');
-      return;
-    }
-
     setIsDetectingLocation(true);
     setLocationPermissionDenied(false);
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 300000 // 5 minutes cache
-    };
-
-    const successCallback = (position: GeolocationPosition) => {
-      const { latitude, longitude } = position.coords;
-      console.log('Location detected:', latitude, longitude);
-      setUserLocation({ lat: latitude, lng: longitude });
-      
-      const coverage = checkCoverage(latitude, longitude);
-      
-      if (coverage.inCoverage && coverage.nearestCity) {
-        setLocation(coverage.nearestCity);
-        setIsOutsideCoverage(false);
-        setNearestCityInfo(null);
-      } else {
-        setIsOutsideCoverage(true);
-        const nearest = findNearestCity(latitude, longitude);
-        setNearestCityInfo(nearest);
-      }
-      
+    const result = await getBrowserLocation();
+    if (result === 'denied') {
+      setLocationPermissionDenied(true);
+      setIsOutsideCoverage(true);
       setIsDetectingLocation(false);
-    };
-
-    const errorCallback = (error: GeolocationPositionError) => {
-      console.log('Geolocation error:', error.code, error.message);
+      return;
+    }
+    if (result === 'unavailable') {
       setIsDetectingLocation(false);
-    };
-
-    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+      return;
+    }
+    setUserLocation(result);
+    const coverage = checkCoverage(result.lat, result.lng);
+    if (coverage.inCoverage && coverage.nearestCity) {
+      setLocation(coverage.nearestCity);
+      setIsOutsideCoverage(false);
+      setNearestCityInfo(null);
+    } else {
+      setIsOutsideCoverage(true);
+      const nearest = findNearestCity(result.lat, result.lng);
+      setNearestCityInfo(nearest);
+    }
+    // Best-effort reverse geocoding for future enhancements
+    reverseGeocode(result.lat, result.lng).catch(() => {});
+    setIsDetectingLocation(false);
   };
 
   // Filter vendors based on city and distance with geofencing
@@ -635,8 +624,8 @@ export default function TeslaLikeLanding() {
       "@type": "LocalBusiness",
       "name": "FindVee",
       "description": "Local service discovery platform for Udupi, Manipal, Kundapura & Koteshwara. Find restaurants, pharmacies, PGs, shops & more.",
-      "url": process.env.VITE_SITE_URL || "https://example.com",
-      "logo": `${process.env.VITE_SITE_URL || "https://example.com"}/logo.png`,
+      "url": import.meta.env.VITE_SITE_URL || "https://example.com",
+      "logo": `${import.meta.env.VITE_SITE_URL || "https://example.com"}/logo.png`,
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Udupi",
@@ -672,12 +661,12 @@ export default function TeslaLikeLanding() {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "FindVee",
-      "url": process.env.VITE_SITE_URL || "https://example.com",
+      "url": import.meta.env.VITE_SITE_URL || "https://example.com",
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": `${process.env.VITE_SITE_URL || "https://example.com"}/?query={search_term_string}`
+          "urlTemplate": `${import.meta.env.VITE_SITE_URL || "https://example.com"}/?query={search_term_string}`
         },
         "query-input": "required name=search_term_string"
       }
@@ -736,11 +725,9 @@ export default function TeslaLikeLanding() {
     
     try {
       if (authMode === 'signup') {
-        await signUp(email, password);
-        if (trackAnalytics) await trackAnalytics('user_signup', { signupMethod: 'email' });
+        await signUpEmailPassword(email, password);
       } else {
-        await signIn(email, password);
-        if (trackAnalytics) await trackAnalytics('user_signin', { signinMethod: 'email' });
+        await signInEmailPassword(email, password);
       }
       
       setShowAuthModal(false);
@@ -755,12 +742,7 @@ export default function TeslaLikeLanding() {
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      if (trackAnalytics) await trackAnalytics('user_signin', { signinMethod: 'google' });
-    } catch (error: any) {
-      setAuthError(error.message);
-    }
+    setAuthError('Google sign-in is not available yet.');
   };
 
   const handleSignOut = async () => {
@@ -1274,11 +1256,11 @@ export default function TeslaLikeLanding() {
             {user ? (
               <div className="flex items-center gap-3">
                 <img 
-                  src={user.photoURL} 
-                  alt={user.displayName} 
+                  src={user.avatarUrl || ''} 
+                  alt={user.displayName || 'User'} 
                   className="w-8 h-8 rounded-full"
                 />
-                <span className="text-sm">{t.welcome}, {user.displayName}</span>
+                <span className="text-sm">{t.welcome}, {user.displayName || user.email}</span>
                 {user.userType === 'admin' && (
                   <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Admin</span>
                 )}

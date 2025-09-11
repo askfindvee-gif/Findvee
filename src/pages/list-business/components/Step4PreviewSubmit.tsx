@@ -5,10 +5,10 @@ import Button from '../../../components/base/Button';
 interface VendorData {
   businessName: string;
   categories: string[];
-  location: string;
+  location: { lat?: number; lng?: number; address: string; city?: string };
   phone: string;
   description: string;
-  proofFile: File | null;
+  proofFile?: File;
 }
 
 interface Step4PreviewSubmitProps {
@@ -35,15 +35,15 @@ export default function Step4PreviewSubmit({
 
   const getMapEmbedUrl = () => {
     try {
-      const url = new URL(data.location);
+      const url = new URL(data.location.address);
       if (url.hostname.includes('google.com') || url.hostname.includes('maps.google.com')) {
-        return data.location;
+        return data.location.address;
       }
     } catch {
-      return `https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`;
+      return `https://www.google.com/maps?q=${encodeURIComponent(data.location.address)}&output=embed`;
     }
     
-    return `https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`;
+    return `https://www.google.com/maps?q=${encodeURIComponent(data.location.address)}&output=embed`;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -104,7 +104,7 @@ export default function Step4PreviewSubmit({
             <div className="space-y-4">
               <div>
                 <span className="text-sm font-medium text-neutral-700">Location:</span>
-                <p className="text-neutral-900 text-sm">{data.location}</p>
+                <p className="text-neutral-900 text-sm">{data.location.address}</p>
               </div>
               
               {/* Map Preview */}
