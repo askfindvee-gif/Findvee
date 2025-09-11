@@ -2,6 +2,8 @@ import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { useRoutes } from "react-router-dom";
 import { useEffect } from "react";
 import routes from "./config";
+import { Suspense } from "react";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 let navigateResolver: (navigate: ReturnType<typeof useNavigate>) => void;
 
@@ -24,5 +26,11 @@ export function AppRoutes() {
       navigateResolver(window.REACT_APP_NAVIGATE);
     });
   }
-  return element;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<div className="p-6">Loading…</div>}>
+        {element}
+      </Suspense>
+    </ErrorBoundary>
+  );
 }

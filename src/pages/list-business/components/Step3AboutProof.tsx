@@ -5,10 +5,10 @@ import Button from '../../../components/base/Button';
 interface VendorData {
   businessName: string;
   categories: string[];
-  location: string;
+  location: { lat?: number; lng?: number; address: string; city?: string };
   phone: string;
   description: string;
-  proofFile: File | null;
+  proofFile?: File;
 }
 
 interface Step3AboutProofProps {

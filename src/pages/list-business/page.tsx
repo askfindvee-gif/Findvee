@@ -17,7 +17,7 @@ export default function ListBusinessPage() {
       "@type": "WebPage",
       "name": "List Your Business - FindVee",
       "description": "Join FindVee and reach more customers in your area. List your business on our local service discovery platform.",
-      "url": `${process.env.VITE_SITE_URL || "https://example.com"}/list-business`,
+      "url": `${import.meta.env.VITE_SITE_URL || "https://example.com"}/list-business`,
       "mainEntity": {
         "@type": "Service",
         "name": "Business Listing Service",
@@ -55,13 +55,13 @@ export default function ListBusinessPage() {
           "@type": "ListItem",
           "position": 1,
           "name": "Home",
-          "item": process.env.VITE_SITE_URL || "https://example.com"
+          "item": import.meta.env.VITE_SITE_URL || "https://example.com"
         },
         {
           "@type": "ListItem",
           "position": 2,
           "name": "List Your Business",
-          "item": `${process.env.VITE_SITE_URL || "https://example.com"}/list-business`
+          "item": `${import.meta.env.VITE_SITE_URL || "https://example.com"}/list-business`
         }
       ]
     };

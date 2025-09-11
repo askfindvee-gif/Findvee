@@ -69,20 +69,20 @@ export default function Step2LocationContact({
   };
 
   const getMapEmbedUrl = () => {
-    if (!data.location.trim()) return '';
+    if (!data.location.address.trim()) return '';
     
     try {
       // If it's already a Google Maps URL, try to convert to embed
-      const url = new URL(data.location);
+      const url = new URL(data.location.address);
       if (url.hostname.includes('google.com') || url.hostname.includes('maps.google.com')) {
-        return data.location;
+        return data.location.address;
       }
     } catch {
       // If not a URL, create embed URL from address
-      return `https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`;
+      return `https://www.google.com/maps?q=${encodeURIComponent(data.location.address)}&output=embed`;
     }
     
-    return `https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`;
+    return `https://www.google.com/maps?q=${encodeURIComponent(data.location.address)}&output=embed`;
   };
 
   return (
@@ -104,9 +104,9 @@ export default function Step2LocationContact({
         <input
           type="text"
           id="location"
-          value={data.location}
+          value={data.location.address}
           onChange={(e) => {
-            updateData({ location: e.target.value });
+            updateData({ location: { ...data.location, address: e.target.value } });
             if (errors.location) {
               setErrors(prev => ({ ...prev, location: '' }));
             }
@@ -125,7 +125,7 @@ export default function Step2LocationContact({
       </div>
 
       {/* Map Preview */}
-      {data.location && validateLocation(data.location) && (
+      {data.location.address && validateLocation(data.location.address) && (
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-2">
             Map Preview
