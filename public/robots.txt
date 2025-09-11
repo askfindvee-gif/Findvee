@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /list-business
+Disallow: /auth/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /account/
+
+Sitemap: https://example.com/sitemap.xml
